@@ -7,6 +7,10 @@ import { BookOpen, Sparkles, FileText, CheckCircle, BrainCircuit } from "lucide-
 import { motion, AnimatePresence } from "motion/react";
 
 export default function App() {
+  React.useEffect(() => {
+    document.title = "Quizforge";
+  }, []);
+
   const [appState, setAppState] = useState<"upload" | "quiz" | "score">("upload");
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<number, "A" | "B" | "C" | "D" | null>>({});
