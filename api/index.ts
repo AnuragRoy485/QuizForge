@@ -3,8 +3,13 @@ import multer from "multer";
 import { createRequire } from "module";
 import { GoogleGenAI, Type } from "@google/genai";
 
-const require = createRequire(import.meta.url);
-const pdf = require("pdf-parse");
+let pdf: any = null;
+try {
+  const require = createRequire(import.meta.url);
+  pdf = require("pdf-parse");
+} catch (pdfLoadErr: any) {
+  console.warn("Failed to load pdf-parse lazily on server startup (expected in some serverless bundlers):", pdfLoadErr.message || pdfLoadErr);
+}
 
 const app = express();
 
@@ -76,6 +81,9 @@ app.post("/api/generate-quiz", upload.single("pdf"), async (req: express.Request
     let pdfParseErrorMessage = "";
 
     try {
+      if (!pdf) {
+        throw new Error("pdf-parse is not initialized or not supported in this serverless runtime.");
+      }
       const parsedPdf = await pdf(req.file.buffer);
       extractedText = parsedPdf.text || "";
     } catch (pdfErr: any) {
