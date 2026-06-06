@@ -109,7 +109,8 @@ app.post("/api/generate-quiz", upload.single("pdf"), async (req: express.Request
 
     // 3. AI Quiz Generation
     const difficulty = (req.body.difficulty || "medium").toString().toLowerCase();
-    console.log(`Requested quiz difficulty level: ${difficulty}`);
+    const numQuestions = Math.min(Math.max(parseInt(req.body.numQuestions || "10", 10) || 10, 1), 30);
+    console.log(`Requested quiz difficulty level: ${difficulty}, count: ${numQuestions}`);
 
     let contents;
     if (useNativeGeminiPdf) {
@@ -124,7 +125,7 @@ app.post("/api/generate-quiz", upload.single("pdf"), async (req: express.Request
         },
         {
           text: `Generate an interactive multiple-choice quiz based on the attached study notes PDF document.
-The quiz must contain exactly 10 multiple-choice questions covering key terms, critical analysis, and standard concepts from this document.
+The quiz must contain exactly ${numQuestions} multiple-choice questions covering key terms, critical analysis, and standard concepts from this document.
 Generate the quiz at the requested difficulty level: ${difficulty.toUpperCase()}.`
         },
       ];
@@ -134,7 +135,7 @@ Generate the quiz at the requested difficulty level: ${difficulty.toUpperCase()}
       contents = [
         {
           text: `Generate an interactive multiple-choice quiz based on the following study notes text extracted from a PDF.
-The quiz must contain exactly 10 multiple-choice questions covering key terms, critical analysis, and standard concepts.
+The quiz must contain exactly ${numQuestions} multiple-choice questions covering key terms, critical analysis, and standard concepts.
 Generate the quiz at the requested difficulty level: ${difficulty.toUpperCase()}.
 
 Here is the extracted study text:
@@ -149,7 +150,7 @@ ${documentSlice}
 
     const config = {
       systemInstruction: `You are QuizForge, an expert educational system that helps students learn faster. 
-Analyze the provided text and design a custom 10-question MCQ quiz to test their knowledge at the custom difficulty level: ${difficulty.toUpperCase()}.
+Analyze the provided text and design a custom ${numQuestions}-question MCQ quiz to test their knowledge at the custom difficulty level: ${difficulty.toUpperCase()}.
 Adjust the question difficulty appropriately:
 - "easy": Focus on simple recall, key terms, definitions, and direct facts.
 - "medium": Focus on application of theories, understanding relationships, and moderate analysis.
@@ -177,7 +178,7 @@ Guidelines:
               properties: {
                 id: {
                   type: Type.INTEGER,
-                  description: "The sequence ID starting at 1 incremented up to 10."
+                  description: `The sequence ID starting at 1 incremented up to ${numQuestions}.`
                 },
                 question: {
                   type: Type.STRING,

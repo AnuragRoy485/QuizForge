@@ -59,6 +59,7 @@ export default function UploadZone({ onQuizGenerated }: UploadZoneProps) {
   };
 
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [numQuestions, setNumQuestions] = useState<number>(10);
   const [progressMessage, setProgressMessage] = useState("");
 
   const handleGenerateQuiz = async () => {
@@ -70,13 +71,14 @@ export default function UploadZone({ onQuizGenerated }: UploadZoneProps) {
     const formData = new FormData();
     formData.append("pdf", selectedFile);
     formData.append("difficulty", difficulty);
+    formData.append("numQuestions", numQuestions.toString());
 
     try {
       setProgressMessage("Parsing uploaded PDF slides and extracting core vocabulary...");
       
       const textProcessingTimer = setTimeout(() => {
         setStatus("generating");
-        setProgressMessage(`Initiating QuizForge Synthesis with Gemini 1.5 Flash (${difficulty.toUpperCase()} level)...`);
+        setProgressMessage(`Initiating QuizForge Synthesis with Gemini 1.5 Flash (${difficulty.toUpperCase()} level, ${numQuestions} Questions)...`);
       }, 1400);
 
       const response = await fetch("/api/generate-quiz", {
@@ -172,37 +174,100 @@ export default function UploadZone({ onQuizGenerated }: UploadZoneProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-black border border-zinc-850 rounded-3xl p-6 space-y-4 text-left shadow-xl"
+            className="bg-black border border-zinc-850 rounded-3xl p-6 space-y-6 text-left shadow-xl"
           >
-            <div className="flex items-center space-x-2 border-b border-zinc-900 pb-3">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-mono font-bold tracking-wider uppercase text-zinc-300">Set Learning Rigor Level</span>
+            {/* Rigor selection */}
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 border-b border-zinc-900 pb-3">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-mono font-bold tracking-wider uppercase text-zinc-300">Set Learning Rigor Level</span>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: "easy", name: "Recall", desc: "Vocabulary & Direct Facts" },
+                  { id: "medium", name: "Intermediate", desc: "Analytical Concepts" },
+                  { id: "hard", name: "Mastery", desc: "Rigorous Deep Questions" }
+                ].map((lvl) => (
+                  <button
+                    key={lvl.id}
+                    type="button"
+                    id={`btn-diff-${lvl.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDifficulty(lvl.id as "easy" | "medium" | "hard");
+                    }}
+                    className={`p-3.5 rounded-2xl border text-center transition-all duration-200 cursor-pointer ${
+                      difficulty === lvl.id
+                        ? "border-emerald-500 bg-emerald-950/20 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.1)] font-semibold"
+                        : "border-zinc-900 bg-zinc-950/40 text-zinc-500 hover:border-zinc-800 hover:text-zinc-350"
+                    }`}
+                  >
+                    <span className="text-xs font-bold block">{lvl.name}</span>
+                    <span className="text-[9px] text-zinc-500 block mt-0.5 leading-tight">{lvl.desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { id: "easy", name: "Recall", desc: "Vocabulary & Direct Facts" },
-                { id: "medium", name: "Intermediate", desc: "Analytical Concepts" },
-                { id: "hard", name: "Mastery", desc: "Rigorous Deep Questions" }
-              ].map((lvl) => (
-                <button
-                  key={lvl.id}
-                  type="button"
-                  id={`btn-diff-${lvl.id}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDifficulty(lvl.id as "easy" | "medium" | "hard");
-                  }}
-                  className={`p-3.5 rounded-2xl border text-center transition-all duration-200 cursor-pointer ${
-                    difficulty === lvl.id
-                      ? "border-emerald-500 bg-emerald-950/20 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.1)] font-semibold"
-                      : "border-zinc-900 bg-zinc-950/40 text-zinc-500 hover:border-zinc-800 hover:text-zinc-350"
-                  }`}
-                >
-                  <span className="text-xs font-bold block">{lvl.name}</span>
-                  <span className="text-[9px] text-zinc-500 block mt-0.5 leading-tight">{lvl.desc}</span>
-                </button>
-              ))}
+
+            {/* Questions count selection */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center space-x-2 border-b border-zinc-900 pb-3">
+                <FileText className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-mono font-bold tracking-wider uppercase text-zinc-300">Set Total Question Count</span>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <div className="grid grid-cols-4 gap-2 flex-grow">
+                  {[5, 10, 15, 20].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      id={`btn-num-q-${num}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNumQuestions(num);
+                      }}
+                      className={`p-3.5 rounded-2xl border text-center transition-all duration-200 cursor-pointer ${
+                        numQuestions === num
+                          ? "border-emerald-500 bg-emerald-950/20 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.1)] font-semibold"
+                          : "border-zinc-900 bg-zinc-950/40 text-zinc-500 hover:border-zinc-850 hover:text-zinc-350"
+                      }`}
+                    >
+                      <span className="text-sm font-bold block">{num}</span>
+                      <span className="text-[8px] text-zinc-500 block leading-none mt-0.5">MCQs</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between border border-zinc-850 bg-zinc-950/40 px-4 py-3 rounded-2xl min-w-[130px]">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNumQuestions((prev) => Math.max(3, prev - 1));
+                    }}
+                    className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-850 text-zinc-350 hover:text-white cursor-pointer select-none font-bold text-sm flex items-center justify-center border border-zinc-800"
+                    title="Decrease count"
+                  >
+                    -
+                  </button>
+                  <span className="text-sm font-mono font-bold text-white text-center w-8 select-none">
+                    {numQuestions}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNumQuestions((prev) => Math.min(30, prev + 1));
+                    }}
+                    className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-850 text-zinc-350 hover:text-white cursor-pointer select-none font-bold text-sm flex items-center justify-center border border-zinc-800"
+                    title="Increase count"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
