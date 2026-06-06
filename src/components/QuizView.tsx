@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { QuizData, QuizQuestion } from "../types";
-import { ArrowRight, SkipForward, HelpCircle, Check, X, Timer } from "lucide-react";
+import { ArrowRight, SkipForward, HelpCircle, Check, X, Timer, Flag } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface QuizViewProps {
   quizData: QuizData;
-  onQuizFinished: (answers: Record<number, "A" | "B" | "C" | "D" | null>, timeTaken: number) => void;
+  onQuizFinished: (
+    answers: Record<number, "A" | "B" | "C" | "D" | null>,
+    timeTaken: number,
+    flaggedQuestionIds: number[]
+  ) => void;
   onRestart: () => void;
 }
 
@@ -14,17 +18,24 @@ export default function QuizView({ quizData, onQuizFinished, onRestart }: QuizVi
   const [selectedOption, setSelectedOption] = useState<"A" | "B" | "C" | "D" | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [answers, setAnswers] = useState<Record<number, "A" | "B" | "C" | "D" | null>>({});
+  const [flaggedQuestionIds, setFlaggedQuestionIds] = useState<number[]>([]);
   
   // Timer Configuration: 5 Minutes (300 seconds)
   const totalDuration = 300;
   const [timeLeft, setTimeLeft] = useState(totalDuration);
+
+  // References to keep timer execution perfectly stable across changes
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
+  const flaggedQuestionIdsRef = useRef(flaggedQuestionIds);
+  flaggedQuestionIdsRef.current = flaggedQuestionIds;
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          onQuizFinished(answers, totalDuration);
+          onQuizFinished(answersRef.current, totalDuration, flaggedQuestionIdsRef.current);
           return 0;
         }
         return prev - 1;
@@ -32,10 +43,19 @@ export default function QuizView({ quizData, onQuizFinished, onRestart }: QuizVi
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [answers, onQuizFinished]);
+  }, [onQuizFinished]);
 
   const currentQuestion: QuizQuestion = quizData.questions[currentIndex];
   const totalQuestions = quizData.questions.length;
+
+  const toggleFlagQuestion = () => {
+    const qId = currentQuestion.id;
+    if (flaggedQuestionIds.includes(qId)) {
+      setFlaggedQuestionIds(flaggedQuestionIds.filter((id) => id !== qId));
+    } else {
+      setFlaggedQuestionIds([...flaggedQuestionIds, qId]);
+    }
+  };
 
   const handleSelectOption = (option: "A" | "B" | "C" | "D") => {
     if (isAnswered) return;
@@ -61,7 +81,7 @@ export default function QuizView({ quizData, onQuizFinished, onRestart }: QuizVi
       setSelectedOption(null);
       setIsAnswered(false);
     } else {
-      onQuizFinished(answers, totalDuration - timeLeft);
+      onQuizFinished(answers, totalDuration - timeLeft, flaggedQuestionIds);
     }
   };
 
@@ -193,10 +213,27 @@ export default function QuizView({ quizData, onQuizFinished, onRestart }: QuizVi
               <HelpCircle className="w-20 h-20 text-white" />
             </div>
 
-            {/* Micro Category Badge */}
-            <div className="inline-flex items-center space-x-1.5 bg-zinc-950 border border-zinc-900 text-zinc-400 text-[10px] font-mono px-3 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Question {currentIndex + 1} of {totalQuestions}</span>
+            <div className="flex items-center justify-between gap-2 overflow-hidden flex-wrap">
+              {/* Micro Category Badge */}
+              <div className="inline-flex items-center space-x-1.5 bg-zinc-950 border border-zinc-900 text-zinc-400 text-[10px] font-mono px-3 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Question {currentIndex + 1} of {totalQuestions}</span>
+              </div>
+
+              {/* Flag Question Button */}
+              <button
+                type="button"
+                onClick={toggleFlagQuestion}
+                className={`inline-flex items-center space-x-1.5 border px-3 py-1 rounded-full text-[10px] font-mono transition duration-150 cursor-pointer ${
+                  flaggedQuestionIds.includes(currentQuestion.id)
+                    ? "bg-amber-950/40 border-amber-500 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)] animate-bounce-subtle"
+                    : "bg-zinc-950 border-zinc-900 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
+                }`}
+                title={flaggedQuestionIds.includes(currentQuestion.id) ? "Unflag question" : "Flag question for later review"}
+              >
+                <Flag className={`w-3 h-3 ${flaggedQuestionIds.includes(currentQuestion.id) ? "fill-amber-400 text-amber-400" : ""}`} />
+                <span>{flaggedQuestionIds.includes(currentQuestion.id) ? "Flagged for Review" : "Flag Question"}</span>
+              </button>
             </div>
 
             {/* Question Title */}

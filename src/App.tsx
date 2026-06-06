@@ -10,24 +10,32 @@ export default function App() {
   const [appState, setAppState] = useState<"upload" | "quiz" | "score">("upload");
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<number, "A" | "B" | "C" | "D" | null>>({});
+  const [flaggedQuestionIds, setFlaggedQuestionIds] = useState<number[]>([]);
   const [timeTaken, setTimeTaken] = useState<number>(0);
 
   const handleQuizGenerated = (data: QuizData) => {
     setQuizData(data);
     setUserAnswers({});
+    setFlaggedQuestionIds([]);
     setTimeTaken(0);
     setAppState("quiz");
   };
 
-  const handleQuizFinished = (answers: Record<number, "A" | "B" | "C" | "D" | null>, duration: number) => {
+  const handleQuizFinished = (
+    answers: Record<number, "A" | "B" | "C" | "D" | null>,
+    duration: number,
+    flaggedIds: number[]
+  ) => {
     setUserAnswers(answers);
     setTimeTaken(duration);
+    setFlaggedQuestionIds(flaggedIds);
     setAppState("score");
   };
 
   const handleRestart = () => {
     setQuizData(null);
     setUserAnswers({});
+    setFlaggedQuestionIds([]);
     setAppState("upload");
   };
 
@@ -158,6 +166,7 @@ export default function App() {
                 quizData={quizData}
                 answers={userAnswers}
                 timeTaken={timeTaken}
+                flaggedQuestionIds={flaggedQuestionIds}
                 onRestart={handleRestart}
               />
             </motion.div>
